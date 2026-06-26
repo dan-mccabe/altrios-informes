@@ -15,12 +15,14 @@ from altrios.lifts.terminal_sim import (
     register_mode,
     run_terminal_simulation,
 )
+from altrios.lifts.informes_api import get_container_transfer_times
 
 __all__ = [
     "Terminal",
     "TerminalState",
     "TerminalMode",
     "get_mode",
+    "get_container_transfer_times",
     "list_modes",
     "loggingLevel",
     "register_mode",
