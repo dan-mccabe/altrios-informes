@@ -16,7 +16,6 @@ use crate::track::link::network::Network;
 use crate::track::LocationMap;
 
 use polars::prelude::*;
-use polars_lazy::dsl::max_horizontal;
 #[allow(unused_imports)]
 use polars_lazy::prelude::*;
 use pyo3_polars::PyDataFrame;
@@ -949,11 +948,11 @@ pub fn run_speed_limit_train_sims(
                     JoinArgs::new(JoinType::Left),
                 )
                 .with_columns(vec![col("Battery_Headroom_J").fill_null(0)])
-                .with_columns(vec![max_horizontal([
-                    col("SOC_Max_J") - col("Battery_Headroom_J"),
-                    col("SOC_Min_J"),
-                ])
-                .with_context(|| format_dbg!())?
+                .with_columns(vec![{
+                    let a = col("SOC_Max_J") - col("Battery_Headroom_J");
+                    let b = col("SOC_Min_J");
+                    when(a.clone().gt(b.clone())).then(a).otherwise(b)
+                }
                 .alias("SOC_Target_J")])
                 .sort(["Locomotive_ID"], SortMultipleOptions::default())
                 .collect()
@@ -1236,7 +1235,11 @@ pub fn run_speed_limit_train_sims(
                 .clone()
                 .lazy()
                 .select(&[(lit(current_time)
-                    + (max_horizontal([col("SOC_J"), col("SOC_Target_J")])? - col("SOC_J"))
+                    + ({
+                        let a = col("SOC_J");
+                        let b = col("SOC_Target_J");
+                        when(a.clone().gt(b.clone())).then(a).otherwise(b)
+                    } - col("SOC_J"))
                         / col("Refueler_J_Per_Hr"))
                 .alias("Refuel_End_Time")])
                 .collect()?;
